@@ -29,13 +29,32 @@
 """
 
 name    = "payload"
-version = "2016-07-01T2042Z"
+version = "2016-07-11T1828Z"
 
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
+global messages_warning
+messages_warning = []
+
 global messages
 messages = []
+
+################################################################################
+
+message = MIMEMultipart("alternative")
+message["Subject"] = "timeout: automatic warning message from monitor"
+message["From"]    = "monitor@localhost"
+message["To"]      = "user@home.pr0"
+text = """
+Hi there
+
+This is an automatic warning message. The interaction time limit is near. Please interact with monitor.
+
+monitor
+"""
+message.attach(MIMEText(text, "plain"))
+messages_warning.append(message)
 
 ################################################################################
 

@@ -45,7 +45,7 @@ options:
 #   --payload=FILENAME       payload file [default: payload.py]
 
 name    = "monitor"
-version = "2016-07-01T2027Z"
+version = "2016-07-11T1827Z"
 logo    = None
 
 import docopt
@@ -69,52 +69,82 @@ def main(options):
     global log
     from propyte import log
 
+    timeout_main    = 604800 # 1 week
+    timeout_warning = 3600   # 1 hour
+
     log.info("")
+
+    """
+    |human time representation|time in seconds|
+    |-------------------------|---------------|
+    |10 minutes               |600            |
+    |30 minutes               |1800           |
+    |1 hour                   |3600           |
+    |8 hours                  |28800          |
+    |10 hours                 |36000          |
+    |1 day                    |86400          |
+    |2 days                   |172800         |
+    |3 days                   |259200         |
+    |4 days                   |345600         |
+    |1 week                   |604800         |
+    |1 month                  |2629740        |
+    |1 year                   |31556900       |
+    """
 
     response = ""
     while response is not None:
         response = propyte.get_input_time_limited(
             prompt  = "Enter some text to restart the interaction loop: ",
-            timeout = 604800 # 1 week
+            timeout = timeout_main
         )
-        """
-        |human time representation|time in seconds|
-        |-------------------------|---------------|
-        |8 hours                  |28800          |
-        |10 hours                 |36000          |
-        |1 day                    |86400          |
-        |2 days                   |172800         |
-        |3 days                   |259200         |
-        |4 days                   |345600         |
-        |1 week                   |604800         |
-        |1 month                  |2629740        |
-        |1 year                   |31556900       |
-        """
 
-    log.info("start non-response procedures")
+    log.info("\nstart warning procedures\n")
 
-    # e-mails
+    # warning messages
 
-    for index, message in enumerate(payload.messages):
+    send_messages(messages = payload.messages_warning)
 
-        try:
-            log.info("send message to {to}".format(
-                to = message["To"]
-            ))
-            server = smtplib.SMTP("localhost")
-            server.sendmail(
-                message["From"],
-                message["To"],
-                message.as_string()
-            )
-            server.quit()
-        except smtplib.SMTPException:
-           print("e-mail send error")
-        time.sleep(5)
+    log.info("")
 
-    log.info("goodbye")
+    response = ""
+    while response is not None:
+        response = propyte.get_input_time_limited(
+            prompt  = "WARNING: {timeout} seconds remaining -- Enter some text to restart the interaction loop (then reset monitor): ".format(
+                timeout = timeout_warning
+            ),
+            timeout = timeout_warning
+        )
+
+    log.info("\nstart non-response procedures\n")
+
+    # messages
+
+    send_messages(messages = payload.messages)
+
+    log.info("\ngoodbye\n")
 
     program.terminate()
+
+def send_messages(
+    messages = None
+    ):
+
+    if messages:
+        for index, message in enumerate(messages):
+            try:
+                log.info("send message to {to}".format(
+                    to = message["To"]
+                ))
+                server = smtplib.SMTP("localhost")
+                server.sendmail(
+                    message["From"],
+                    message["To"],
+                    message.as_string()
+                )
+                server.quit()
+            except smtplib.SMTPException:
+               print("e-mail send error")
+            time.sleep(5)
 
 if __name__ == "__main__":
     options = docopt.docopt(__doc__)
